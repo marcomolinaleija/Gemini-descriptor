@@ -13,6 +13,7 @@ import json
 import threading
 
 import wx
+import cv2
 import pyperclip
 from google import genai
 
@@ -320,11 +321,50 @@ class GeminiUploaderApp(wx.Frame):
 				self.send_button.Enable()
 				# Actualizamos el texto de la barra de estado
 				self.update_status(f"Archivo seleccionado: {os.path.basename(self.selected_file)}")
+				self.get_tockens()
 				alert(f"Archivo seleccionado: {os.path.basename(self.selected_file)}")
 				
 				# Limpiar respuestas anteriores
 				self.response_text.SetValue("")
 				self.hide_result_buttons()
+
+	def get_tockens(self):
+		"""
+		Método que calcula los tokens estimados según el tipo de archivo seleccionado.
+		"""
+		
+		if not hasattr(self, 'selected_file') or not self.selected_file:
+			self.show_error("No se ha seleccionado ningún archivo.")
+			return
+
+		file_extension = os.path.splitext(self.selected_file)[1].lower()
+		
+		if file_extension in [".mp4", ".mov", ".avi"]:
+			# Calculamos tokens para video
+			cap = cv2.VideoCapture(self.selected_file)
+			fps = cap.get(cv2.CAP_PROP_FPS)
+			frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+			duration = frame_count / fps if fps > 0 else 0
+			cap.release()
+			
+			if duration <= 0:
+				self.show_error("No se pudo obtener la duración del video.")
+				return
+			
+			tokens = int(duration * 300)  # 300 tokens por segundo
+			mensaje = f"Duración: {duration:.2f} segundos. Estimación de tokens: {tokens}."
+			
+		elif file_extension in [".png", ".jpg"]:
+			# Calculamos tokens para imagen
+			tokens = 258  # Cada imagen es 258 tokens
+			mensaje = f"El archivo es una imagen. Estimación de tokens: {tokens}."
+		
+		else:
+			self.show_error("Formato de archivo no compatible.")
+			return
+
+		self.update_status(mensaje)
+		alert(mensaje)
 
 	def send_file(self, event):
 		"""
