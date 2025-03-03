@@ -403,7 +403,7 @@ class GeminiUploaderApp(wx.Frame):
 			
 			# Creamos la solicitud a Gemini
 			response = self.client.models.generate_content(
-				model="gemini-1.5-pro",
+				model="gemini-2.0-flash-exp",
 				contents=[video_file, prompt]
 			)
 			
